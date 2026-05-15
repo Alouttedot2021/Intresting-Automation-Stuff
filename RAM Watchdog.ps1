@@ -22,7 +22,7 @@ if ($UsedPercent -gt $Threshold) {
     $TopProcesses = Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 3
     
     # Log the findings to a file
-    $LogPath = "C:\test\Test.txt"
+    $LogPath = "Path"
     $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     
     "--- ALERT at $Timestamp ---" | Out-File $LogPath -Append

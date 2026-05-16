@@ -1,0 +1,205 @@
+{
+  "name": "ExamineWebRequest",
+  "nodes": [
+    {
+      "parameters": {
+        "prompt": "={{ $json }}"
+      },
+      "name": "Basic LLM Chain1",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        784,
+        0
+      ],
+      "typeVersion": 1.2,
+      "id": "98edddee-4dba-4866-9b41-fcb8f89b88af"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        864,
+        224
+      ],
+      "id": "623e8511-f529-4ec4-bd63-1886d9174e41",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "Your ELK URL",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"size\": 1000,\n  \"query\": {\n    \"bool\": {\n      \"must\": [\n        {\n          \"range\": {\n            \"@timestamp\": {\n              \"gte\": \"now-30m/m\",\n              \"lt\": \"now/m\"\n            }\n          }\n        },\n        {\n          \"range\": {\n            \"sc-status\": {\n              \"gte\": 400\n            }\n          }\n        }\n      ],\n      \"must_not\": [\n        {\n          \"terms\": {\n            \"c-oIP\": [\n(You can Add your Internal IP which you do not need to make it clean)\n            ]\n          }\n        }\n      ]\n    }\n  },\n  \"_source\": [\n    (Add Your Source )\n    \"@timestamp\",\n    \"cs-uri-query\",\n    \"cs-Referer\",\n    \"time-taken\",\n    \"cs-uri-stem\",\n    \"csUser-Agent\",\n    \"c-oIP\",\n    \"SourceModuleName\"\n  ],\n  \"sort\": [\n    {\n      \"@timestamp\": {\n        \"order\": \"desc\"\n      }\n    }\n  ]\n}\n",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "2bfb0944-5a98-46d8-ba16-5bcf46bc455f",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const hits = items[0].json.hits.hits;\n\nconst formattedLogs = hits.map((hit, index) => {\n  const fields = Object.entries(hit._source)\n    .map(([key, value]) => `${key}: ${value}`)\n    .join('\\n');\n\n  return `Log #${index + 1}:\\n${fields}`;\n}).join('\\n\\n');\n\nreturn [\n  {\n    json: {\n      prompt: `You are a cybersecurity analyst.\n\nReview the following web request logs for signs of suspicious or malicious activity.\n\nYour response must include:\n- A maximum of 10–15 bullet points\n- Any detected threats, anomalies, or attack attempts\n- Specific IP addresses involved in suspicious behavior\n- Methods, endpoints, or patterns that look abnormal\n- Clear and actionable findings only — no general advice\n\nLogs:\n${formattedLogs }`,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        0
+      ],
+      "id": "1dd6779a-a51d-4682-8bd8-88285bbd9310",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "Your Webhook URL",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Text",
+              "value": "={{ $json.text }}"
+            },
+            {
+              "name": "Title",
+              "value": "AI Security Recommendation"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1152,
+        0
+      ],
+      "id": "a7e9ce85-a841-4f49-b851-7de34011e4f0",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9846c8e5-6c34-494c-8b88-766a12d30467",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "content": "Java Script that will convert logs into readable formate and Gemini Prompt",
+        "height": 80,
+        "width": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        384,
+        128
+      ],
+      "id": "6c00c83f-7eb0-41fb-a377-18347bdd2dcf",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8b795cec-ffb8-425b-b664-b20638568de2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "03a3ea7ba9f04fc148d4468891c8e66d8482032a63d17e339b680f0a21d3d48e"
+  },
+  "id": "bNmr3MG2vNtDZXmQ",
+  "tags": []
+}
